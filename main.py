@@ -249,10 +249,12 @@ class MainWindow(QMainWindow):
         self.buttonPanel.addWidget(self.btnConvertTemperature)
 
         ## Button to Plot Sparklines for Values ---------------------
-        self.btnGraphData = QPushButton("Update Data Trends")
-        self.btnGraphData.setFont(buttonFont)
-        self.btnGraphData.clicked.connect(self.graphData)
-        self.buttonPanel.addWidget(self.btnGraphData)
+        # Note: Button no longer needed, sparkline graphs updated dynamically
+
+        # self.btnGraphData = QPushButton("Update Data Trends")
+        # self.btnGraphData.setFont(buttonFont)
+        # self.btnGraphData.clicked.connect(self.graphData)
+        # self.buttonPanel.addWidget(self.btnGraphData)
 
         ## Button to exit the program -------------------------------
         self.btnClose = QPushButton("Quit")
