@@ -7,7 +7,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from sensor import AHT20Sensor
-# from pseudoSensor import PseudoSensor
 from statistics import mean
 from utils import convertTemperature, Worker
 
@@ -40,9 +39,8 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow,self).__init__(*args, **kwargs)
 
-        # self.ps = PseudoSensor()
         self.ps = AHT20Sensor()
-
+   
         # Define Fonts
         QFontDatabase.addApplicationFont("fonts/ttfs/Jura-Regular.ttf")
         buttonFont = QFont("Jura", 48)
@@ -84,10 +82,10 @@ class MainWindow(QMainWindow):
 
         # Init Vars
         self.currentTemperature = 0
-        self.currentUnit = "F"
+        self.currentUnit = "C"
         self.currentHumidity = 0
-        self.minTemperature = 60
-        self.maxTemperature = 80
+        self.minTemperature = 16
+        self.maxTemperature = 26
         self.minHumidity = 20
         self.maxHumidity = 50
         self.n = 10 # Number of iterations for generating multiple values
@@ -245,7 +243,7 @@ class MainWindow(QMainWindow):
         self.buttonPanel.addWidget(self.btnGetMinMaxAvg)
         
         ## Button to Convert Between °F/°C --------------------------
-        self.btnConvertTemperature = QPushButton("Convert to °C")
+        self.btnConvertTemperature = QPushButton("Convert to °F")
         self.btnConvertTemperature.setFont(buttonFont)
         self.btnConvertTemperature.clicked.connect(self.convertCurrentTemperature)
         self.buttonPanel.addWidget(self.btnConvertTemperature)
@@ -338,7 +336,6 @@ class MainWindow(QMainWindow):
         readout = {
             "temp":t,
             "rhum":h,
-            # "timestamp": currentTime
             "timestamp": currentTime.timestamp(),
         }
         print(f"generateReadout complete • {readout}")
@@ -432,8 +429,8 @@ class MainWindow(QMainWindow):
         minHumLimit = self.minHumidity
         maxHumLimit = self.maxHumidity
 
-        # Temperatures from history are in °F; handle conversion if current unit is °C
-        if self.currentUnit == "C":
+        # Temperatures from history are in °C; handle conversion if current unit is °F
+        if self.currentUnit == "F":
             minTempLimit = convertTemperature(minTempLimit, self.currentUnit)
             maxTempLimit = convertTemperature(maxTempLimit, self.currentUnit)
 
@@ -493,7 +490,7 @@ class MainWindow(QMainWindow):
         rhums = []
         for count, readout in enumerate(readoutsToMap):
             temp, rhum, timestamp = readout.values()            
-            if self.currentUnit == "C":
+            if self.currentUnit == "F":
                 temp = convertTemperature(temp, self.currentUnit)
             
             temps.append(temp)
@@ -544,7 +541,7 @@ class MainWindow(QMainWindow):
             rHumErrorText = "Comfortable"
             rHumErrorColor = f"color: {self.colorNormal}"
 
-        if self.currentUnit == "C":
+        if self.currentUnit == "F":
             t = convertTemperature(t, self.currentUnit)
 
         # Update Labels & Graph
