@@ -1,6 +1,10 @@
 # Mac FS
 .DS_Store
 
+# Ignore certificates and device internal data
+certs/
+deviceData/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
