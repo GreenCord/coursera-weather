@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from sensor import AHT20Sensor
 from statistics import mean
-from utils import convertTemperature, Worker
+from utils.worker import Worker
+from utils.convert import convertTemperature
 
 # Class for displaying the sparkline graphs in PyQt5
 class MplCanvas(FigureCanvasQTAgg):

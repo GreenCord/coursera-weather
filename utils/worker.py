@@ -5,13 +5,6 @@ from PyQt5.QtCore import *
 import time
 import traceback, sys
 
-def convertTemperature(degrees, toUnit):
-    if toUnit == "C":
-        return (degrees - 32) * 5 / 9
-    elif toUnit == "F":
-        return (degrees * 9 / 5) + 32
-    else: return "Error"
-
 # Adapted from https://www.pythonguis.com/tutorials/multithreading-pyqt-applications-qthreadpool/
 class WorkerSignals(QObject):
     """
