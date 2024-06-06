@@ -1,7 +1,8 @@
-import datetime, math, numpy as np, pandas as pd, time
+import datetime, json, math, numpy as np, pandas as pd, platform, time
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from pubsub import PubSub
 from PyQt5.QtCore import Qt 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -10,6 +11,10 @@ from sensor import AHT20Sensor
 from statistics import mean
 from utils.worker import Worker
 from utils.convert import convertTemperature
+
+file = open("./deviceData/device.json")
+device = json.load(file)
+file.close()
 
 # Class for displaying the sparkline graphs in PyQt5
 class MplCanvas(FigureCanvasQTAgg):
@@ -41,7 +46,11 @@ class MainWindow(QMainWindow):
         super(MainWindow,self).__init__(*args, **kwargs)
 
         self.ps = AHT20Sensor()
-   
+        self.system = platform.system()
+        self.clientId = device["clientId"]
+        print("+++++ system :: " + self.system)
+        self.pubSub = PubSub(listener = True, topic="aht20sensor")
+    
         # Define Fonts
         QFontDatabase.addApplicationFont("fonts/ttfs/Jura-Regular.ttf")
         buttonFont = QFont("Jura", 48)
@@ -260,7 +269,7 @@ class MainWindow(QMainWindow):
         ## Button to exit the program -------------------------------
         self.btnClose = QPushButton("Quit")
         self.btnClose.setFont(buttonFont)
-        self.btnClose.clicked.connect(self.close)
+        self.btnClose.clicked.connect(self.shutdown)
         self.buttonPanel.addWidget(self.btnClose)
 
         # Add the Button Panel to the main layout grid ------------------------
@@ -277,9 +286,16 @@ class MainWindow(QMainWindow):
         self.show()
         self.threadpool = QThreadPool()
         print(f"Multithreading with maximum {self.threadpool.maxThreadCount()} threads")
-        self.showFullScreen()
+        if self.system == "Darwin":
+            self.show()
+        else:
+            self.showFullScreen()
         # End __init__ -~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~
-    
+    # Method to shut down and close the program
+    def shutdown(self):
+        if self.pubSub.is_connected == True:
+            self.pubSub.broker_disconnect()
+        self.close()
     # Method to remove the stats from the GUI (usually when generating new readouts)
     def clearStatsLabel(self):
         print("clearStatsLabel called")
@@ -338,9 +354,14 @@ class MainWindow(QMainWindow):
             "temp":t,
             "rhum":h,
             "timestamp": currentTime.timestamp(),
+            "clientId": self.clientId
         }
         print(f"generateReadout complete • {readout}")
-
+        print("????? Is pubSub connected? ", self.pubSub.is_connected)
+        if self.pubSub.is_connected == False:
+            self.pubSub.broker_connect().send(data=readout)
+        else:
+            self.pubSub.send(data=readout)
         return readout
     
     # Method for calculating and displaying the stats for N readouts
@@ -418,7 +439,7 @@ class MainWindow(QMainWindow):
         print("graphData called")
         print(f"Current History: {self.history}")
         
-        yTValues, yRHValues, xTimestamps = self.mapReadouts(self.nGraph).values()
+        yTValues, yRHValues, xTimestamps, clientId = self.mapReadouts(self.nGraph).values()
 
         df = pd.DataFrame(xTimestamps, columns = ['timestamp'])
         df['temperature'] = yTValues
@@ -490,7 +511,7 @@ class MainWindow(QMainWindow):
         temps = []
         rhums = []
         for count, readout in enumerate(readoutsToMap):
-            temp, rhum, timestamp = readout.values()            
+            temp, rhum, timestamp, clientId = readout.values()            
             if self.currentUnit == "F":
                 temp = convertTemperature(temp, self.currentUnit)
             
@@ -500,7 +521,8 @@ class MainWindow(QMainWindow):
         mappedValues = {
             "temps": temps,
             "rhums": rhums,
-            "timestamps": timestamps
+            "timestamps": timestamps,
+            "clientId": clientId
         }
         print(f"mapReadouts complete")
         return mappedValues
