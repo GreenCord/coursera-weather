@@ -276,7 +276,7 @@ class MainWindow(QMainWindow):
         self.show()
         self.threadpool = QThreadPool()
         print(f"Multithreading with maximum {self.threadpool.maxThreadCount()} threads")
-
+        self.showFullScreen()
         # End __init__ -~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~
     
     # Method to remove the stats from the GUI (usually when generating new readouts)
