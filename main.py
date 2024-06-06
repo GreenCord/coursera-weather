@@ -6,7 +6,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from pseudoSensor import PseudoSensor
+from sensor import AHT20Sensor
+# from pseudoSensor import PseudoSensor
 from statistics import mean
 from utils import convertTemperature, Worker
 
@@ -39,7 +40,8 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(MainWindow,self).__init__(*args, **kwargs)
 
-        self.ps = PseudoSensor()
+        # self.ps = PseudoSensor()
+        self.ps = AHT20Sensor()
 
         # Define Fonts
         QFontDatabase.addApplicationFont("fonts/ttfs/Jura-Regular.ttf")
