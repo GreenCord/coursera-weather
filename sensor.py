@@ -27,8 +27,8 @@ class AHT20Sensor:
             self.tempVal = self.t_range[ self.t_range_index ]
         else:
             # Use sensor data
-            self.humVal = self.sensor.relative_humidity
-            self.tempVal = self.sensor.temperature
+            self.humVal = sensor.relative_humidity
+            self.tempVal = sensor.temperature
 
     def generate_values(self):
         if (isPseudo):
@@ -46,7 +46,7 @@ class AHT20Sensor:
             if self.t_range_index > len(self.t_range) - 1:
                 self.t_range_index = 0
         else:
-            self.humVal = self.sensor.relative_humidity
-            self.tempVal = self.sensor.temperature
+            self.humVal = sensor.relative_humidity
+            self.tempVal = sensor.temperature
 
         return self.humVal, self.tempVal
