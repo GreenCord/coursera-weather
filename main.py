@@ -1,8 +1,17 @@
-import datetime, json, math, numpy as np, pandas as pd, platform, time
+import datetime
+import json
+import logging
+import matplotlib
+import numpy as np
+import pandas as pd
+import platform
+from simple_chalk import chalk
+import time
 
+from broadcaster import Broadcaster
+from utils.custom_logging import Logger
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from pubsub import PubSub
 from PyQt5.QtCore import Qt 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -12,7 +21,7 @@ from statistics import mean
 from utils.worker import Worker
 from utils.convert import convertTemperature
 
-file = open("./deviceData/device.json")
+file = open("./data/device.json")
 device = json.load(file)
 file.close()
 
@@ -44,13 +53,16 @@ class MainWindow(QMainWindow):
     
     def __init__(self, *args, **kwargs):
         super(MainWindow,self).__init__(*args, **kwargs)
+        self.logger = Logger("MainWindow")
+
+        self.system = platform.system()
+        self.logger.info(chalk.white("System detected") + self.logger.sep + chalk.green(self.system)) 
 
         self.ps = AHT20Sensor()
-        self.system = platform.system()
         self.clientId = device["clientId"]
-        print("+++++ system :: " + self.system)
-        self.pubSub = PubSub(listener = True, topic="aht20sensor")
-    
+        self.broadcaster = Broadcaster(listener = True, topic="aht20sensor")
+        
+
         # Define Fonts
         QFontDatabase.addApplicationFont("fonts/ttfs/Jura-Regular.ttf")
         buttonFont = QFont("Jura", 48)
@@ -285,28 +297,30 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
         self.show()
         self.threadpool = QThreadPool()
-        print(f"Multithreading with maximum {self.threadpool.maxThreadCount()} threads")
+        self.logger.info(chalk.white("Multithreading with maximum ") + chalk.blue(self.threadpool.maxThreadCount()) + chalk.white(" threads."))
         if self.system == "Darwin":
             self.show()
         else:
             self.showFullScreen()
         # End __init__ -~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~-~=~
+    
     # Method to shut down and close the program
     def shutdown(self):
-        if self.pubSub.is_connected == True:
-            self.pubSub.broker_disconnect()
+        if self.broadcaster.is_connected == True:
+            self.broadcaster.broker_disconnect()
         self.close()
+    
     # Method to remove the stats from the GUI (usually when generating new readouts)
     def clearStatsLabel(self):
-        print("clearStatsLabel called")
         self.temperatureStats.setText(f"")
         self.humidityStats.setText(f"")
         self.statsCalculated = False
-        print("clearStatsLabel complete")
 
     # Method to handle temperature conversions
     def convertCurrentTemperature(self):
-        print(f"convertTemperature called to convert {self.currentTemperature}°{self.currentUnit}")
+        origTemp = self.currentTemperature
+        origUnit = self.currentUnit
+        
         if self.currentUnit == "F":
             self.currentTemperature = round(convertTemperature(self.currentTemperature, "C"))
             if self.statsCalculated:
@@ -326,27 +340,28 @@ class MainWindow(QMainWindow):
                 self.temperatureStats.setText(f"Min: {self.statMinTemp} / Max: {self.statMaxTemp} / Avg: {self.statAvgTemp}")
             self.currentUnit = "F"
             self.btnConvertTemperature.setText("Convert to °C")
-        print(f"= {self.currentTemperature}°{self.currentUnit}")
         self.temperatureLabel.setText(f"{self.currentTemperature}")
         self.temperatureDegreeSymbol.setText(f"°{self.currentUnit}")
-        print("convertTemperature complete")
+        convertText = chalk.white("Converted ") + chalk.blueBright(origTemp) + chalk.blue("°") + chalk.blueBright(origUnit) + chalk.white(" to ") + chalk.blueBright(self.currentTemperature) + chalk.blue("°") + chalk.blueBright(self.currentUnit)
+        if self.statsCalculated:
+            convertText += chalk.white(" and converted displayed stats")
+        convertText += chalk.white(".")
+        self.logger.info(convertText)
 
     # Method for generating N readouts with 1s delay between
     def generateNReadouts(self, progressCallback):
         # This function is to be called via the Worker thread
-        print("generateNReadouts called")
         for n in range(0, self.n - 1):
             readout = self.generateReadout()
             self.history.append(readout)
             progressCallback.emit(readout)
-            print("Sleep for 1 second.")
+            self.logger.debug("Sleep for 1 second.")
             time.sleep(1)
-            print("Sleep done.")
+            self.logger.debug("Sleep done.")
         return
 
     # Method for generating a single readout
     def generateReadout(self):
-        print("generateReadout called")
         h,t = self.ps.generate_values()
         currentTime = datetime.datetime.now()
 
@@ -356,12 +371,15 @@ class MainWindow(QMainWindow):
             "timestamp": currentTime.timestamp(),
             "clientId": self.clientId
         }
-        print(f"generateReadout complete • {readout}")
-        print("????? Is pubSub connected? ", self.pubSub.is_connected)
-        if self.pubSub.is_connected == False:
-            self.pubSub.broker_connect().send(data=readout)
+        self.logger.info(f"New sensor readout • {chalk.blueBright(readout)}")
+        
+        if self.broadcaster.is_connected == False:
+            self.logger.info(chalk.yellowBright("Broadcaster is not connected. ") + chalk.white("Connecting and sending last readout."))
+            self.broadcaster.broker_connect().send(data=readout)
         else:
-            self.pubSub.send(data=readout)
+            self.logger.info(chalk.blueBright("Broadcaster is currently connected. ") + chalk.white("Sending last readout."))
+            self.broadcaster.send(data=readout)
+        
         return readout
     
     # Method for calculating and displaying the stats for N readouts
@@ -373,9 +391,7 @@ class MainWindow(QMainWindow):
         using the readouts stored in self.history. The stats labels are
         updated with the calculated values.
         '''
-        print("getMinMaxAvg called")
-
-        temps, rhums, timestamps = self.mapReadouts(self.nStats).values()
+        temps, rhums, timestamps, clientId = self.mapReadouts(self.nStats).values()
 
         self.statMinTemp = round(min(temps))
         self.statMaxTemp = round(max(temps))
@@ -386,11 +402,8 @@ class MainWindow(QMainWindow):
         self.statsCalculated = True
         temperatureStatText = f"Min: {self.statMinTemp} / Max: {self.statMaxTemp} / Avg: {self.statAvgTemp}"
         rHumidityStatText = f"Min: {self.statMinRHum} / Max: {self.statMaxRHum} / Avg: {self.statAvgRHum}"
-        print(f"Temperature • {temperatureStatText}")
-        print(f"Relative Humidity • {rHumidityStatText}")
         self.temperatureStats.setText(temperatureStatText)
         self.humidityStats.setText(rHumidityStatText)
-        print("genMinxMaxAvg complete")
    
     # Method for handling the interaction to generate N readouts using a Worker thread
     def getNReadouts(self):
@@ -401,19 +414,18 @@ class MainWindow(QMainWindow):
         locking up the GUI. When the worker is done, the value labels are 
         updated with the values from the last readout recorded.
         '''
-        print(f"getNReadouts called for {self.n} values")
         self.clearStatsLabel()
 
         # Pass the function to execute
         worker = Worker(self.generateNReadouts)
-        print(f"Worker started. • {worker}")
+        self.logger.info(f"Worker started. • {worker}")
         worker.signals.progress.connect(self.updateLabels)
         worker.signals.result.connect(self.workerResult)
         worker.signals.finished.connect(self.workerFinished)
 
         # Execute
         self.threadpool.start(worker)
-
+        
     # Method for handling the interaction to generate 1 readout (synchronous)
     def getReadout(self):
         '''
@@ -421,12 +433,10 @@ class MainWindow(QMainWindow):
         When the related button is pressed, this handles generating a single 
         readout synchronously and update the value labels with the values.
         '''
-        print("getReadout called")
         self.clearStatsLabel()
         readout = self.generateReadout()
         self.history.append(readout)
         self.updateLabels()
-        print("getReadoutComplete")
     
     # Method for graphing the sparklines to display/update on the GUI
     def graphData(self):
@@ -436,8 +446,7 @@ class MainWindow(QMainWindow):
         graph for the historic values of temperature and relative humidity.
         It updates the stats labels with the result graph.
         '''
-        print("graphData called")
-        print(f"Current History: {self.history}")
+        self.logger.debug(f"Plotting graphs using history: {self.history}")
         
         yTValues, yRHValues, xTimestamps, clientId = self.mapReadouts(self.nGraph).values()
 
@@ -497,15 +506,12 @@ class MainWindow(QMainWindow):
         self.sparklinesPanel.addStretch()
         self.layoutContainer.addLayout(self.sparklinesPanel, 2, 0, 1, 2)
 
-        print ("graphData done")
-
     # Helper Method to map readouts into a Dict for each type of readout value, for graphing
     def mapReadouts(self, n: int):
         '''
         Returns a dict of n temps, rhums, timestamps. temps will be returned
         using the current temperatureUnit.
         '''
-        print("mapReadouts called")
         readoutsToMap = self.history[-n:]
         timestamps = []
         temps = []
@@ -524,13 +530,11 @@ class MainWindow(QMainWindow):
             "timestamps": timestamps,
             "clientId": clientId
         }
-        print(f"mapReadouts complete")
         return mappedValues
     
     # Helper Method to update the labels on the GUI when something changes
     def updateLabels(self):
-        print(f"updateLabels called")
-        print(f"History updated, new length • {len(self.history)}")
+        self.logger.debug(f"History updated, new length • {len(self.history)}")
 
         readout = self.history[ len(self.history) - 1 ]
         
@@ -577,15 +581,14 @@ class MainWindow(QMainWindow):
         self.humidityError.setText(rHumErrorText)
         self.humidityError.setStyleSheet(rHumErrorColor)
         self.graphData()
-        print("updateLabels complete")
     
     # Helper Method called when a worker thread ends.
     def workerFinished(self):
-        print("Worker finished.")
+        self.logger.info("Worker finished.")
 
-    # Helper Method to print the result of the thread.
+    # Helper Method to log the result of the thread.
     def workerResult(self,it):
-        print(it)
+        self.logger.info(f"Worker Result: {it}")
 
 # General StyleSheet
 style = """
