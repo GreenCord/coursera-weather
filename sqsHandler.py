@@ -15,13 +15,7 @@ class SQSHandler(threading.Thread):
 
     def __init__(self, *args, **kwargs):
         self.logger = Logger("SQSHandler")
-
         self.queue_url = device["sqsUrl"]
-        # Init Vars
-        # self.session = boto3.session.Session()
-        # self.sqs = self.session.client('sqs')
-        # self.q = self.sqs.Queue(url='')
-
    
     def getMessage(self):
         session = boto3.session.Session()
@@ -37,7 +31,7 @@ class SQSHandler(threading.Thread):
                 'All'
             ],
             VisibilityTimeout=0,
-            WaitTimeSeconds=20
+            WaitTimeSeconds=5
         )
         
         if 'Messages' in response:
@@ -57,4 +51,3 @@ class SQSHandler(threading.Thread):
         else:
             self.logger.info('No messages in queue.')
             return None
-                

@@ -11,6 +11,9 @@ class Logger(logging.getLoggerClass()):
         matplotlib.set_loglevel(level = "info")
         boto3.set_stream_logger('boto3', logging.INFO)
         boto3.set_stream_logger('botocore', logging.INFO)
+        boto3.set_stream_logger('botocore.tokens', logging.CRITICAL)
+        boto3.set_stream_logger('urllib3.connectionpool', logging.INFO)
+
         
         self.l = logging.getLogger(caller)
         self.caller = chalk.whiteBright(f"{caller}")
