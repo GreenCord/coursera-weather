@@ -5,5 +5,6 @@
     "thingName": "1000000",
     "caPath": "./certs/Amazon-root-CA-1.pem",
     "certPath": "./certs/device.pem.crt",
-    "keyPath": "./certs/private.pem.key"
+    "keyPath": "./certs/private.pem.key",
+    "sqsUrl": "https://sqs.us-east-2.amazonaws.com/673650700199/AHT20SensorV1"
 }

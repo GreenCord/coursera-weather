@@ -1,3 +1,4 @@
+import boto3
 import logging
 import matplotlib
 from simple_chalk import chalk
@@ -5,9 +6,11 @@ from simple_chalk import chalk
 class Logger(logging.getLoggerClass()):
     
     def __init__(self, caller=__name__):
-        self.logLevel = logging.INFO
+        self.logLevel = logging.DEBUG
         logging.basicConfig(format=chalk.whiteBright(" %(levelname)-8s") + chalk.white(" [ ") + chalk.whiteBright("%(name)-11s") + chalk.white(" ] ") + "%(message)s", level=self.logLevel, force=True)
         matplotlib.set_loglevel(level = "info")
+        boto3.set_stream_logger('boto3', logging.INFO)
+        boto3.set_stream_logger('botocore', logging.INFO)
         
         self.l = logging.getLogger(caller)
         self.caller = chalk.whiteBright(f"{caller}")
