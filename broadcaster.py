@@ -1,5 +1,4 @@
 import json
-import logging
 import paho.mqtt.client as paho
 import ssl
 

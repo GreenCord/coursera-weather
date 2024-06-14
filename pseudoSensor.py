@@ -20,7 +20,7 @@ class PseudoSensor:
         self.humVal = self.h_range[ self.h_range_index ]
         self.tempVal = self.t_range[ self.t_range_index ]
     
-    def generate_values(self):
+    def getReadout(self):
         self.humVal = self.h_range[ self.h_range_index ] + random.uniform(0,10)
         self.tempVal = self.t_range[ self.t_range_index ] + random.uniform(0,10)
 

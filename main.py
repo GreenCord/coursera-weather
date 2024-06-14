@@ -1,25 +1,22 @@
 import datetime
 import json
-import logging
-import matplotlib
 import numpy as np
 import pandas as pd
 import platform
-from simple_chalk import chalk
 import time
 
 from broadcaster import Broadcaster
-from utils.custom_logging import Logger
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from PyQt5.QtCore import Qt 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from sensor import AHT20Sensor
+from simple_chalk import chalk
 from statistics import mean
-from utils.worker import Worker
 from utils.convert import convertTemperature
+from utils.custom_logging import Logger
+from utils.worker import Worker
 
 file = open("./data/device.json")
 device = json.load(file)
@@ -60,7 +57,7 @@ class MainWindow(QMainWindow):
 
         self.ps = AHT20Sensor()
         self.clientId = device["clientId"]
-        self.broadcaster = Broadcaster(listener = True, topic="aht20sensor")
+        self.broadcaster = Broadcaster(listener=True, topic="aht20sensor")
         
 
         # Define Fonts
@@ -362,7 +359,7 @@ class MainWindow(QMainWindow):
 
     # Method for generating a single readout
     def generateReadout(self):
-        h,t = self.ps.generate_values()
+        h,t = self.ps.getReadout()
         currentTime = datetime.datetime.now()
 
         readout = {

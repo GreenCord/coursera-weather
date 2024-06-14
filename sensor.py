@@ -30,7 +30,7 @@ class AHT20Sensor:
             self.humVal = sensor.relative_humidity
             self.tempVal = sensor.temperature
 
-    def generate_values(self):
+    def getReadout(self):
         if (isPseudo):
             # Use fake data if no sensor was detected
             self.humVal = self.h_range[ self.h_range_index ] + random.uniform(0,10)
