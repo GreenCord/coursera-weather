@@ -349,10 +349,10 @@ class SensorDisplay(QMainWindow):
         ## Temperature ----------------------------------------------
         tempErrorText = ""
         tempErrorColor = ""
-        if t > self.limits["temp"]["min"]:
+        if t > self.limits["temp"]["max"]:
             tempErrorText = "Too hot!"
             tempErrorColor = f"color: {self.colorTooHot}"
-        elif t < self.limits["temp"]["max"]:
+        elif t < self.limits["temp"]["min"]:
             tempErrorText = "Too cold!"
             tempErrorColor = f"color: {self.colorTooCold}"
         else:
@@ -362,10 +362,10 @@ class SensorDisplay(QMainWindow):
         ## Humidity -------------------------------------------------
         rHumErrorText = ""
         rHumErrorColor = ""
-        if h > self.limits["rhum"]["min"]:
+        if h > self.limits["rhum"]["max"]:
             rHumErrorText = "Too humid!"
             rHumErrorColor = f"color: {self.colorTooHumid}"
-        elif h < self.limits["rhum"]["max"]:
+        elif h < self.limits["rhum"]["min"]:
             rHumErrorText = "Too dry!"
             rHumErrorColor = f"color: {self.colorTooDry}"
         else:
