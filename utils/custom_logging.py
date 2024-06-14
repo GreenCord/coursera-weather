@@ -5,7 +5,7 @@ from simple_chalk import chalk
 class Logger(logging.getLoggerClass()):
     
     def __init__(self, caller=__name__):
-        self.logLevel = logging.DEBUG
+        self.logLevel = logging.INFO
         logging.basicConfig(format=chalk.whiteBright(" %(levelname)-8s") + chalk.white(" [ ") + chalk.whiteBright("%(name)-11s") + chalk.white(" ] ") + "%(message)s", level=self.logLevel, force=True)
         matplotlib.set_loglevel(level = "info")
         

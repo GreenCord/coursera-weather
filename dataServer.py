@@ -16,11 +16,11 @@ class SensorData():
 
     def __init__(self, interval, *args, **kwargs):
         self.logger = Logger("SensorData")
-        self.logger.info(chalk.white("Initializing SensorData using") + chalk.blueBright(f" {interval} ms ") + chalk.white("readout interval."))
+        self.logger.info(chalk.white("Initializing SensorData using") + chalk.blueBright(f" {interval} second ") + chalk.white("readout interval."))
         
         self.ps = AHT20Sensor()
         self.clientId = device["clientId"]
-        self.broadcaster = Broadcaster(listener=True, topic ="aht20sensor")
+        self.broadcaster = Broadcaster(listener=False, topic ="aht20sensor")
 
         # Init Vars
         self.currentTemperature = 0 # °C by default
@@ -49,10 +49,10 @@ class SensorData():
         self.logger.info(f"New sensor readout • {chalk.blueBright(readout)}")
         
         if self.broadcaster.is_connected == False:
-            self.logger.info(chalk.yellowBright("Broadcaster is not connected. ") + chalk.white("Connecting and sending last readout."))
+            self.logger.info(chalk.yellowBright("Broadcaster is not connected. ") + chalk.white("Connecting and sending the latest readout."))
             self.broadcaster.broker_connect().send(data=readout)
         else:
-            self.logger.info(chalk.blueBright("Broadcaster is currently connected. ") + chalk.white("Sending last readout."))
+            self.logger.info(chalk.blueBright("Broadcaster is currently connected. ") + chalk.white("Sending the latest readout."))
             self.broadcaster.send(data=readout)
         
         return readout
