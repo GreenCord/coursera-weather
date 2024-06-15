@@ -1,4 +1,4 @@
-
+import ast
 import datetime
 import json
 import numpy as np
@@ -6,8 +6,7 @@ import pandas as pd
 import platform
 import time
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
+from mplCanvas import MplCanvas
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -87,8 +86,8 @@ class SensorDisplay(QMainWindow):
         self.colorNormal = "#006C67"
         self.colorTooHot = "#DB4437"
         self.colorTooCold = "#1789FC"
-        self.colorTooDry = "#C8963E"
-        self.colorTooHumid = "#1789FC"
+        self.colorTooHumid = "#DB4437"
+        self.colorTooDry = "#1789FC"
 
         self.cBlack = "rgb(30, 27, 24)"
         self.QCBlack = QColor(30,27,24)
@@ -336,6 +335,106 @@ class SensorDisplay(QMainWindow):
         self.stats["areCalculated"] = False
         self.logger.debug("clearStatsLabel complete.")
     
+    # Method for graphing the sparklines to display/update on the GUI
+    def graphData(self):
+        '''
+        Key Interaction:
+        When the related button is pressed, this handled generating a sparkline
+        graph for the historic values of temperature and relative humidity.
+        It updates the stats labels with the result graph.
+        '''
+        self.logger.debug(f"Plotting graphs using history: {self.data['history']}")
+        
+        yTValues, yRHValues, xTimestamps, clientId = self.mapReadouts(self.limits['n']['graph']).values()
+
+        df = pd.DataFrame(xTimestamps, columns = ['timestamp'])
+        df['temperature'] = yTValues
+        df['humidity'] = yRHValues
+
+        # Store the value limits
+        minTempLimit = self.limits['temp']['min']
+        maxTempLimit = self.limits['temp']['max']
+        minHumLimit = self.limits['rhum']['min']
+        maxHumLimit = self.limits['rhum']['max']
+        
+        # Get the current ° unit
+        unit = self.data['unit']
+
+        # Temperatures from history are in °C; handle conversion if current unit is °F
+        if unit == "F":
+            minTempLimit = convertTemperature(minTempLimit, unit)
+            maxTempLimit = convertTemperature(maxTempLimit, unit)
+
+        # Line Colors
+        itsCold = self.colorTooCold
+        itsHot = self.colorTooHot
+        itsNormal = self.colorNormal
+        itsDry = self.colorTooDry
+        itsHumid = self.colorTooHumid
+
+        # Mask the Temperature Data and create the sparkline using line colors
+        tUpper = np.ma.masked_where(df['temperature'] < maxTempLimit, df['temperature'])
+        tLower = np.ma.masked_where(df['temperature'] > minTempLimit, df['temperature'])
+        sparklineT = MplCanvas(self, width=4, height=1, dpi=100)
+        sparklineT.axes.plot(df['timestamp'], df['temperature'], color=itsNormal)
+        sparklineT.axes.plot(df['timestamp'], tLower, color=itsCold)
+        sparklineT.axes.plot(df['timestamp'], tUpper, color=itsHot)
+
+        # Mask the Humidity Data and create the sparkline using line colors
+        hUpper = np.ma.masked_where(df['humidity'] < maxHumLimit, df['humidity'])
+        hLower = np.ma.masked_where(df['humidity'] > minHumLimit, df['humidity'])
+        sparklineH = MplCanvas(self, width=4, height=1, dpi=100)
+        sparklineH.axes.plot(df['timestamp'], df['humidity'], color=itsNormal)
+        sparklineH.axes.plot(df['timestamp'], hLower, color=itsDry)
+        sparklineH.axes.plot(df['timestamp'], hUpper, color=itsHumid)
+
+        # Create the sparkline graph layout and add/overwrite position on main layout
+        self.sparklinesPanel = QHBoxLayout()
+        self.sparklineTemperature = sparklineT
+        self.sparklineTemperatureLabel = QLabel("Temperature:")
+        self.sparklineTemperatureLabel.setFont(self.graphLabelFont)
+        self.sparklineTemperatureLabel.setAlignment( Qt.AlignRight | Qt.AlignVCenter)
+        self.sparklineHumidity = sparklineH
+        self.sparklineHumidityLabel = QLabel("Humidity:")
+        self.sparklineHumidityLabel.setFont(self.graphLabelFont)
+        self.sparklineHumidityLabel.setAlignment( Qt.AlignRight | Qt.AlignVCenter)
+        self.sparklinesPanel.addStretch()
+        self.sparklinesPanel.addWidget(self.sparklineTemperatureLabel)
+        self.sparklinesPanel.addWidget(self.sparklineTemperature)
+        self.sparklinesPanel.addWidget(self.sparklineHumidityLabel)
+        self.sparklinesPanel.addWidget(self.sparklineHumidity)
+        self.sparklinesPanel.addStretch()
+        self.layoutContainer.addLayout(self.sparklinesPanel, 2, 0, 1, 2)
+
+    # Helper Method to map readouts into a Dict for each type of readout value, for graphing
+    def mapReadouts(self, n: int):
+        '''
+        Returns a dict of n temps, rhums, timestamps. temps will be returned
+        using the current temperatureUnit.
+        '''
+        readoutsToMap = self.data['history'][-n:]
+        timestamps = []
+        temps = []
+        rhums = []
+        for count, readout in enumerate(readoutsToMap):
+            self.logger.debug(f'mapReadouts using readout: {ast.literal_eval(readout)}')
+
+            temp, rhum, timestamp, clientId = ast.literal_eval(readout).values()            
+            if self.data['unit'] == "F":
+                temp = convertTemperature(temp, self.data['unit'])
+            
+            temps.append(temp)
+            rhums.append(rhum)
+            timestamps.append(timestamp)
+        mappedValues = {
+            "temps": temps,
+            "rhums": rhums,
+            "timestamps": timestamps,
+            "clientId": clientId
+        }
+        return mappedValues
+    
+
     # Method to update the labels on the screen.
     def updateLabels(self):
         self.logger.debug("updateLabels called.")
@@ -384,7 +483,7 @@ class SensorDisplay(QMainWindow):
         self.humidityLabel.setText(f"{round(self.data['rhum'])}")
         self.humidityError.setText(rHumErrorText)
         self.humidityError.setStyleSheet(rHumErrorColor)
-        # self.graphData()
+        self.graphData()
         self.logger.debug("updateLabels finished.")
 
     # Helper Method called when a worker thread ends.
