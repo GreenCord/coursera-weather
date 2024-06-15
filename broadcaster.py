@@ -1,6 +1,5 @@
 import json
 import paho.mqtt.client as paho
-import ssl
 
 from utils.custom_logging import Logger
 from simple_chalk import blue, blueBright, greenBright, magenta, magentaBright, white, whiteBright, yellowBright
@@ -16,8 +15,7 @@ file.close()
 class Broadcaster(object):
 
     def __init__(self, listener = False, topic = "default"):
-        self.logger = Logger("Broadcaster")
-        
+        self.logger = Logger("Broadcaster")   
         self.is_connected = False
         self.listener = listener
         self.topic = f"{device['thingName']}/{topic}"

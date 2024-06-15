@@ -1,7 +1,4 @@
-import base64
-import boto3
-import json
-import threading
+import base64, boto3, json, threading
 
 from simple_chalk import chalk
 from utils.custom_logging import Logger
@@ -10,7 +7,6 @@ file = open("./data/device.json")
 device = json.load(file)
 file.close()
 
-
 class SQSHandler(threading.Thread):
 
     def __init__(self, *args, **kwargs):
@@ -18,9 +14,11 @@ class SQSHandler(threading.Thread):
         self.queue_url = device["sqsUrl"]
    
     def getMessage(self):
+        # Create session & SQS client
         session = boto3.session.Session()
         sqs = session.client('sqs')
         
+        # Check for messages & grab latest 1
         response = sqs.receive_message(
             QueueUrl=self.queue_url,
             AttributeNames=[
@@ -35,6 +33,7 @@ class SQSHandler(threading.Thread):
         )
         
         if 'Messages' in response:
+            # Handle messsage * clear from queue when received
             message = response['Messages'][0]
             if 'Body' in message:
                 body = base64.b64decode(message['Body'])
@@ -49,5 +48,6 @@ class SQSHandler(threading.Thread):
             self.logger.info('Returning message body %s' % body)
             return body
         else:
+            # Report when no messages are available
             self.logger.info('No messages in queue.')
             return None

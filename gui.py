@@ -1,10 +1,7 @@
-import ast
-import datetime
-import json
+import ast, datetime, json
 import numpy as np
 import pandas as pd
 import platform
-import time
 
 from mplCanvas import MplCanvas
 from PyQt5.QtGui import *
@@ -516,7 +513,6 @@ class SensorDisplay(QMainWindow):
     # Helper Method to log the result of the thread.
     def workerResult(self,it):
         self.logger.info(f"Worker Result: {it}")
-
 
 # General StyleSheet
 style = """

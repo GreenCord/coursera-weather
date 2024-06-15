@@ -37,3 +37,4 @@ class Logger(logging.getLoggerClass()):
 
     def warn(self, msg, symbolType="WARNING"):
         self.l.warning(chalk.yellow(msg))
+        

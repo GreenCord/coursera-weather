@@ -1,7 +1,4 @@
-import datetime
-import json
-import sys
-
+import datetime, json, sys
 from broadcaster import Broadcaster
 from sensor import AHT20Sensor
 from simple_chalk import chalk
@@ -18,28 +15,24 @@ class SensorData():
         self.logger = Logger("SensorData")
         self.logger.info(chalk.white("Initializing SensorData using") + chalk.blueBright(f" {interval} second ") + chalk.white("readout interval."))
         
-        self.ps = AHT20Sensor()
+        self.sensor = AHT20Sensor()
         self.clientId = device["clientId"]
         self.broadcaster = Broadcaster(listener=False, topic ="aht20sensor")
 
         # Init Vars
         self.currentTemperature = 0 # °C by default
         self.currentHumidity = 0    # % relative Humidity
-        self.n = int(interval)                 # Number of ms between sensor readings
+        self.n = int(interval)      # Number of ms between sensor readings
 
     def startSensing(self):
-        '''
-        Kicks off an infinite loop
-        '''
         self.logger.debug("startSensing called")
         while True:
             self.getReadout()
             sleep(self.n)
 
     def getReadout(self):
-        h,t = self.ps.getReadout()
+        h,t = self.sensor.getReadout()
         currentTime = datetime.datetime.now()
-
         readout = {
             "temp": t,
             "rhum": h,
@@ -56,7 +49,7 @@ class SensorData():
             self.broadcaster.send(data=readout)
         
         return readout
-
+    
 # App Setup/Initialization
 if sys.argv.__len__() == 1:
     print(chalk.redBright("ERROR: ") + chalk.white("Please provide a number of seconds to use as the sensor reading interval, e.g.: ") + chalk.whiteBright("python dataServer.py 60"))

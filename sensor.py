@@ -1,17 +1,19 @@
 isPseudo = False
 try:
+    # Try loading the AHT20 Sensor resources when one is connected
     import board
     import adafruit_ahtx0
     sensor = adafruit_ahtx0.AHTx0(board.I2C())
 except:
+    # If initializing the AHT20 sensor fails, fall back to pseudosensor
     import random
     isPseudo = True
 
 class AHT20Sensor:
-    # Humidity Range
+    # Humidity Range for pseudosensor
     h_range = [0,20,20,40,40,60,60,80,80,90,70,70,50,50,30,30,10,10]
  
-    # Celsius Range
+    # Celsius Range for pseudosensor
     t_range = [-29,-23,-18,-12,-1,10,21,27,32,26,15,4,-6,-12,-17,-23]
     
     h_range_index = 0
@@ -26,7 +28,7 @@ class AHT20Sensor:
             self.humVal = self.h_range[ self.h_range_index ]
             self.tempVal = self.t_range[ self.t_range_index ]
         else:
-            # Use sensor data
+            # Use actual sensor data
             self.humVal = sensor.relative_humidity
             self.tempVal = sensor.temperature
 
@@ -46,7 +48,9 @@ class AHT20Sensor:
             if self.t_range_index > len(self.t_range) - 1:
                 self.t_range_index = 0
         else:
+            # Use actual sensor data
             self.humVal = sensor.relative_humidity
             self.tempVal = sensor.temperature
 
         return self.humVal, self.tempVal
+    

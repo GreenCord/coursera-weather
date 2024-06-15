@@ -24,3 +24,4 @@ class MplCanvas(FigureCanvasQTAgg):
         fig.tight_layout()
 
         super(MplCanvas, self).__init__(fig)
+        
