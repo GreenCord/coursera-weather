@@ -169,7 +169,7 @@ class SensorDisplay(QMainWindow):
         self.temperaturePanel.addStretch()
 
         # Add the Temperature Panel to the main layout grid -------------------
-        self.layoutContainer.addLayout(self.temperaturePanel, 0, 0)
+        self.layoutContainer.addLayout(self.temperaturePanel, 1, 0)
 
         """
         Relative Humidity Panel ===============================================
@@ -225,45 +225,19 @@ class SensorDisplay(QMainWindow):
         self.humidityPanel.addStretch()
         
         # Add the Humidity Panel to the main layout grid  ---------------------
-        self.layoutContainer.addLayout(self.humidityPanel, 1, 0)
+        self.layoutContainer.addLayout(self.humidityPanel, 1, 1)
 
         """
         Button Interactions ===================================================
         """
         # Layout: Button Panel (Buttons Added after their definitions) --------
-        self.buttonPanel = QVBoxLayout()
-
-        ## Button to Get Current Readouts ---------------------------
-        # self.btnGetReadout = QPushButton("Get Readout")
-        # self.btnGetReadout.setFont(buttonFont)
-        # self.btnGetReadout.clicked.connect(self.getReadout)
-        # self.buttonPanel.addWidget(self.btnGetReadout)
-
-        ## Button to Get n Readouts ---------------------------------
-        # self.btnGetNReadouts = QPushButton(f"Get {self.n} Readouts")
-        # self.btnGetNReadouts.setFont(buttonFont)
-        # self.btnGetNReadouts.clicked.connect(self.getNReadouts)
-        # self.buttonPanel.addWidget(self.btnGetNReadouts)
-
-        ## Button to Get the Min/Max/Avg Values ---------------------
-        # self.btnGetMinMaxAvg = QPushButton(f"Stats for Last {self.nStats} Readouts")
-        # self.btnGetMinMaxAvg.setFont(buttonFont)
-        # self.btnGetMinMaxAvg.clicked.connect(self.getMinMaxAvg)
-        # self.buttonPanel.addWidget(self.btnGetMinMaxAvg)
+        self.buttonPanel = QHBoxLayout()
         
-        ## Button to Convert Between °F/°C --------------------------
-        # self.btnConvertTemperature = QPushButton("Convert to °F")
-        # self.btnConvertTemperature.setFont(buttonFont)
-        # self.btnConvertTemperature.clicked.connect(self.convertCurrentTemperature)
-        # self.buttonPanel.addWidget(self.btnConvertTemperature)
-
-        ## Button to Plot Sparklines for Values ---------------------
-        # Note: Button no longer needed, sparkline graphs updated dynamically
-
-        # self.btnGraphData = QPushButton("Update Data Trends")
-        # self.btnGraphData.setFont(buttonFont)
-        # self.btnGraphData.clicked.connect(self.graphData)
-        # self.buttonPanel.addWidget(self.btnGraphData)
+        # Button to Convert Between °F/°C --------------------------
+        self.btnConvertTemperature = QPushButton("Convert to °F")
+        self.btnConvertTemperature.setFont(buttonFont)
+        self.btnConvertTemperature.clicked.connect(self.convertCurrentTemperature)
+        self.buttonPanel.addWidget(self.btnConvertTemperature)
 
         ## Button to exit the program -------------------------------
         self.btnClose = QPushButton("Quit")
@@ -272,13 +246,12 @@ class SensorDisplay(QMainWindow):
         self.buttonPanel.addWidget(self.btnClose)
 
         # Add the Button Panel to the main layout grid ------------------------
-        self.layoutContainer.addLayout(self.buttonPanel, 0, 1, 2, 1)
+        self.layoutContainer.addLayout(self.buttonPanel, 0, 0, 1, 2)
 
         """
         App Window Layout =====================================================
         """
         # Set up App window widget
-        self.clearStatsLabel()
         self.temperatureLabel.setText("-")
         self.temperatureError.setText("")
         self.humidityLabel.setText("-")
@@ -323,18 +296,67 @@ class SensorDisplay(QMainWindow):
         except (KeyboardInterrupt, EOFError):
             self.shutdown()
 
+    # Method to handle temperature conversions
+    def convertCurrentTemperature(self):
+        if self.data['temp'] <= -9999:
+            return
+        origTemp = self.data['temp']
+        origUnit = self.data['unit']
+        
+        if self.data['unit'] == "F":
+            self.data['temp'] = round(convertTemperature(self.data['temp'], "C"))
+            if self.stats['areCalculated']:
+                self.stats['temp']['min'] = round(convertTemperature(self.stats['temp']['min'],"C"))
+                self.stats['temp']['max'] = round(convertTemperature(self.stats['temp']['max'],"C"))
+                self.stats['temp']['avg'] = round(convertTemperature(self.stats['temp']['avg'],"C"))
+                self.temperatureStats.setText(f"Min: {self.stats['temp']['min']} / Max: {self.stats['temp']['max']} / Avg: {self.stats['temp']['avg']}")
+            self.data['unit'] = "C"
+            
+            self.btnConvertTemperature.setText("Convert to °F")
+        else:
+            self.data['temp'] = round(convertTemperature(self.data['temp'], "F"))
+            if self.stats['areCalculated']:
+                self.stats['temp']['min'] = round(convertTemperature(self.stats['temp']['min'],"F"))
+                self.stats['temp']['max'] = round(convertTemperature(self.stats['temp']['max'],"F"))
+                self.stats['temp']['avg'] = round(convertTemperature(self.stats['temp']['avg'],"F"))
+                self.temperatureStats.setText(f"Min: {self.stats['temp']['min']} / Max: {self.stats['temp']['max']} / Avg: {self.stats['temp']['avg']}")
+            self.data['unit'] = "F"
+            self.btnConvertTemperature.setText("Convert to °C")
+        self.temperatureLabel.setText(f"{self.data['temp']}")
+        self.temperatureDegreeSymbol.setText(f"°{self.data['unit']}")
+        convertText = chalk.white("Converted ") + chalk.blueBright(origTemp) + chalk.blue("°") + chalk.blueBright(origUnit) + chalk.white(" to ") + chalk.blueBright(self.data['temp']) + chalk.blue("°") + chalk.blueBright(self.data['unit'])
+        if self.stats['areCalculated']:
+            convertText += chalk.white(" and converted displayed stats")
+        convertText += chalk.white(".")
+        self.logger.info(convertText)
+    
     # Method to shut down and close the program
     def shutdown(self):
         self.close()
-
-    # Method to clear the stats labels.
-    def clearStatsLabel(self):
-        self.logger.debug("clearStatsLabel called.")
-        self.temperatureStats.setText(f"")
-        self.humidityStats.setText(f"")
-        self.stats["areCalculated"] = False
-        self.logger.debug("clearStatsLabel complete.")
     
+    # Method for calculating and displaying the stats for N readouts
+    def getMinMaxAvg(self):
+        '''
+        Key Interaction:
+        When the related button is pressed, this handles calculating the
+        minimum, maximum, and average temperature and relative humidity
+        using the readouts stored in self.history. The stats labels are
+        updated with the calculated values.
+        '''
+        temps, rhums, timestamps, clientId = self.mapReadouts(self.limits['n']['stats']).values()
+
+        self.stats['temp']['min'] = round(min(temps))
+        self.stats['temp']['max'] = round(max(temps))
+        self.stats['temp']['avg'] = round(mean(temps))
+        self.stats['rhum']['min'] = round(min(rhums))
+        self.stats['rhum']['max'] = round(max(rhums))
+        self.stats['rhum']['avg'] = round(mean(rhums))
+        self.stats['areCalculated'] = True
+        temperatureStatText = f"Min: {self.stats['temp']['min']} / Max: {self.stats['temp']['max']} / Avg: {self.stats['temp']['avg']}"
+        rHumidityStatText = f"Min: {self.stats['rhum']['min']} / Max: {self.stats['rhum']['max']} / Avg: {self.stats['rhum']['avg']}"
+        self.temperatureStats.setText(temperatureStatText)
+        self.humidityStats.setText(rHumidityStatText)
+
     # Method for graphing the sparklines to display/update on the GUI
     def graphData(self):
         '''
@@ -434,7 +456,6 @@ class SensorDisplay(QMainWindow):
         }
         return mappedValues
     
-
     # Method to update the labels on the screen.
     def updateLabels(self):
         self.logger.debug("updateLabels called.")
@@ -483,6 +504,7 @@ class SensorDisplay(QMainWindow):
         self.humidityLabel.setText(f"{round(self.data['rhum'])}")
         self.humidityError.setText(rHumErrorText)
         self.humidityError.setStyleSheet(rHumErrorColor)
+        self.getMinMaxAvg()
         self.graphData()
         self.logger.debug("updateLabels finished.")
 
