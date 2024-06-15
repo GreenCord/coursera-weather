@@ -2,7 +2,6 @@ Adafruit_Blinka==8.40.1
 adafruit_circuitpython_ahtx0==1.0.21
 awscrt==0.20.10
 boto3==1.34.126
-matplotlib==3.8.0
 matplotlib==3.8.2
 numpy==1.26.4
 paho_mqtt==2.1.0
