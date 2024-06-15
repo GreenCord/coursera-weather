@@ -1,0 +1,17 @@
+@startuml AHT20 Sensor Data Server
+participant "Data Server" as dataServer
+participant "Broadcaster" as broadcaster
+participant "AWS IoT Core" as awsIotCore
+participant "AWS SQS Queue" as awsSqsQueue
+participant "Receiver" as receiver
+participant "GUI" as gui
+
+dataServer -> broadcaster: Send sensor data
+broadcaster -> awsIotCore: Subscribe/Send via MQTT
+awsIotCore -> awsSqsQueue: Thing Rule
+activate receiver
+receiver -> awsSqsQueue: Check SQS queue
+receiver <- awsSqsQueue: Receive message
+receiver -> gui: Display data
+deactivate receiver
+@enduml
