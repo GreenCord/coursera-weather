@@ -1,6 +1,9 @@
 # Mac FS
 .DS_Store
 
+# AWS-Related
+certs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
