@@ -1,0 +1,15 @@
+@startuml AHT20 Sensor Data GUI
+skinparam actorStyle Hollow
+left to right direction
+actor User as u
+package DataHandler {
+  usecase "Check SQS Queue" as checkQ
+}
+package GUI {
+  u -- (GUI)
+  u -> (Convert °C/°F)
+  (Convert °C/°F) .> (Update GUI) : includes
+  u -> (Quit)
+  (checkQ) <.> (Update GUI) : includes
+}
+@enduml
