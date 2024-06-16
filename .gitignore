@@ -1,9 +1,10 @@
 # Mac FS
 .DS_Store
 
-# Ignore certificates and device internal data
+# AWS Related / Ignore certificates and device internal data
 certs/
 deviceData/
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
