@@ -5,6 +5,7 @@
 certs/
 deviceData/
 data/
+data/device.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
